@@ -247,6 +247,39 @@ function renderChart() {
 				tooltip: {
 					mode: "index", // Find items across datasets at the same index
 					intersect: false, // Trigger tooltip even when not directly over an item
+					callbacks: {
+						label: (tooltipItem) => {
+							const profileId = tooltipItem.dataset.label;
+							const currentDataPoint = tooltipItem.raw; // {x: timestamp, y: count, profileId: ...}
+							const dataIndex = tooltipItem.dataIndex;
+
+							// Re-fetch or access the aggregated history for this profile
+							const rawHistory = currentFollowerHistory[profileId] || [];
+							const aggregatedHistory = aggregateData(
+								rawHistory,
+								currentAggregationLevel,
+							); // Use global aggregation level
+
+							// Find the corresponding point and the previous one in the *aggregated* history
+							const currentAggregatedPoint = aggregatedHistory[dataIndex];
+							const previousAggregatedPoint =
+								dataIndex > 0 ? aggregatedHistory[dataIndex - 1] : null;
+
+							// Calculate delta using the existing function
+							const deltaInfo = calculateDelta(
+								currentAggregatedPoint,
+								previousAggregatedPoint,
+							);
+
+							// Format the label string
+							let label = `${profileId}: ${currentDataPoint.y}`;
+							if (deltaInfo.text !== "(first data point)") {
+								// Only add delta if it's not the first point
+								label += ` ${deltaInfo.text}`;
+							}
+							return label;
+						},
+					},
 				},
 			},
 		},
