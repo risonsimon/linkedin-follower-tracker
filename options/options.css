@@ -1,32 +1,149 @@
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
 body {
-    font-family: sans-serif;
-    padding: 10px;
-    min-width: 400px;
+    font-family: 'Roboto', sans-serif;
+    padding: 20px;
+    min-width: 500px; /* Slightly wider for better layout */
+    background-color: #f4f7f6;
+    color: #333;
+}
+
+h1, h2 {
+    color: #0a66c2; /* LinkedIn blue */
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8px;
+    margin-top: 25px;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+h1 {
+    font-size: 24px;
+    margin-top: 0;
+}
+
+h2 {
+    font-size: 18px;
+}
+
+/* Tracked Profiles List Styling */
+#profilesList {
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 10px 15px;
+    margin-bottom: 20px;
 }
 
 #profilesList ul {
     list-style: none;
     padding: 0;
+    margin: 0; /* Reset margin */
 }
 
 #profilesList li {
-    padding: 5px 0;
+    padding: 10px 5px;
     border-bottom: 1px solid #eee;
     display: flex;
     align-items: center;
+    font-size: 14px;
 }
 
 #profilesList li:last-child {
     border-bottom: none;
 }
 
+#profilesList input[type="checkbox"] {
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+#profilesList label {
+    flex-grow: 1; /* Allow label to take up space */
+    cursor: pointer;
+}
+
 .remove-button {
     margin-left: auto; /* Pushes button to the right */
     cursor: pointer;
-    padding: 2px 5px;
+    padding: 5px 10px;
+    font-size: 12px;
+    color: #fff;
+    background-color: #d9534f; /* Red color for remove */
+    border: none;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
 }
 
+.remove-button:hover {
+    background-color: #c9302c; /* Darker red on hover */
+}
+
+/* Aggregation Options Styling */
+#aggregationOptions label {
+    margin-right: 15px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+#aggregationOptions input[type="radio"] {
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+/* Chart Container Styling */
 #chartContainer {
     margin-top: 20px;
-    max-width: 600px; /* Limit chart width */
+    padding: 15px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    max-width: 700px; /* Allow chart to be wider */
+}
+
+/* Data Table Styling */
+#dataTableContainer {
+    margin-top: 20px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 15px;
+    overflow-x: auto; /* Add scroll if table is too wide */
+}
+
+#dataTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+#dataTable th, #dataTable td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+#dataTable th {
+    background-color: #f8f9fa;
+    font-weight: 500;
+    color: #555;
+}
+
+#dataTable tr:last-child td {
+    border-bottom: none;
+}
+
+#dataTable tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* General link styling (if needed later) */
+a {
+    color: #0a66c2;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
 }
