@@ -3,21 +3,69 @@
 
 <head>
     <title>LinkedIn Follower Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <style>
         body {
-            width: 200px;
-            padding: 10px;
+            width: 220px;
+            /* Slightly wider */
+            padding: 15px;
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f7f6;
+            /* Light background */
+            color: #333;
+            text-align: center;
+            /* Center align content */
+        }
+
+        h1 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: #0a66c2;
+            /* LinkedIn blue */
         }
 
         button {
             width: 100%;
-            padding: 8px;
-            margin-bottom: 5px;
+            padding: 10px 15px;
+            /* More padding */
+            margin-bottom: 10px;
+            /* More space between buttons */
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            /* Remove default border */
+            border-radius: 5px;
+            /* Rounded corners */
+            cursor: pointer;
+            background-color: #0a66c2;
+            /* LinkedIn blue */
+            color: white;
+            transition: background-color 0.2s ease;
+            /* Smooth hover transition */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            /* Subtle shadow */
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #004182;
+            /* Darker blue on hover */
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            /* Grey out disabled button */
+            color: #666666;
+            cursor: not-allowed;
+            box-shadow: none;
         }
     </style>
 </head>
 
 <body>
+    <h1>LinkedIn Tracker</h1>
     <button id="addProfileButton" disabled>Add Profile to Tracker</button>
     <button id="settingsButton">Settings</button>
     <!-- Settings button will be added later if needed, the PRD mentions opening options via chrome.runtime.openOptionsPage() triggered from JS, not a button here -->
