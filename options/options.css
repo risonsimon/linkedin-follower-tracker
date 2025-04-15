@@ -1,0 +1,32 @@
+body {
+    font-family: sans-serif;
+    padding: 10px;
+    min-width: 400px;
+}
+
+#profilesList ul {
+    list-style: none;
+    padding: 0;
+}
+
+#profilesList li {
+    padding: 5px 0;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+}
+
+#profilesList li:last-child {
+    border-bottom: none;
+}
+
+.remove-button {
+    margin-left: auto; /* Pushes button to the right */
+    cursor: pointer;
+    padding: 2px 5px;
+}
+
+#chartContainer {
+    margin-top: 20px;
+    max-width: 600px; /* Limit chart width */
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>LinkedIn Follower Tracker Options</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+
+<body>
+    <h1>Tracked Profiles</h1>
+    <div id="profilesList">
+        <!-- Profile list will be populated by options.js -->
+    </div>
+
+    <h2>Follower Stats</h2>
+    <div id="chartContainer">
+        <canvas id="statsChart"></canvas>
+        <!-- Chart will be rendered here -->
+    </div>
+
+    <h2>Raw Follower Data</h2>
+    <div id="dataTableContainer">
+        <!-- Data table will be rendered here -->
+    </div>
+
+    <!-- Include Date library (needed by adapter) -->
+    <script src="lib/date-fns.min.js"></script>
+
+    <!-- Include Chart.js library -->
+    <script src="lib/chart.min.js"></script>
+
+    <!-- Include Chart.js Date Adapter (must come AFTER date-fns and chart.js) -->
+    <script src="lib/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+    <!-- Your options script -->
+    <script src="options.js"></script>
+</body>
+
+</html>
