@@ -94,12 +94,14 @@ h2 {
 
 /* Chart Container Styling */
 #chartContainer {
-    margin-top: 20px;
     padding: 15px;
     background-color: #fff;
     border-radius: 5px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    max-width: 700px; /* Allow chart to be wider */
+    max-width: 90%; /* Allow chart to use more width */
+    min-height: 400px; /* Give the chart more vertical space */
+    margin-left: auto; /* Center the container */
+    margin-right: auto;
 }
 
 /* Data Table Styling */
