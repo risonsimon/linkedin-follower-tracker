@@ -2,6 +2,44 @@
 let statsChartInstance = null;
 // Store profile data globally to avoid re-fetching
 let currentFollowerHistory = {};
+// Store current aggregation level
+let currentAggregationLevel = "daily"; // Default to daily
+
+// --- New Function: Aggregate Data ---
+function aggregateData(history, level) {
+	if (!history || history.length === 0) {
+		return [];
+	}
+
+	const aggregatedMap = new Map(); // Use a map for easier replacement
+
+	// Ensure history is sorted ascending by timestamp
+	history.sort((a, b) => a.timestamp - b.timestamp);
+
+	for (const point of history) {
+		const pointDate = new Date(point.timestamp);
+		const periodStartDate = new Date(pointDate);
+
+		if (level === "monthly") {
+			periodStartDate.setDate(1); // Set to the 1st of the month
+		}
+		// Always set to the start of the day for the key
+		periodStartDate.setHours(0, 0, 0, 0);
+		const periodStartKey = periodStartDate.getTime();
+
+		// Store the latest count with the *normalized* timestamp (start of the period)
+		aggregatedMap.set(periodStartKey, {
+			timestamp: periodStartKey, // Use normalized timestamp
+			count: point.count, // Use the count from the latest point in the period
+		});
+	}
+
+	// Convert map values back to an array, already sorted by key (timestamp)
+	const aggregatedHistory = Array.from(aggregatedMap.values());
+
+	return aggregatedHistory;
+}
+// --- End New Function ---
 
 function loadProfiles() {
 	chrome.storage.local.get(["trackedProfiles", "followerHistory"], (result) => {
@@ -69,6 +107,11 @@ function loadProfiles() {
 
 		// Call renderChart and renderDataTable after profiles are loaded and list is built
 		try {
+			// Read initial aggregation level (might have changed before load)
+			const selectedRadio = document.querySelector(
+				'input[name="aggregation"]:checked',
+			);
+			currentAggregationLevel = selectedRadio ? selectedRadio.value : "daily";
 			renderChart();
 		} catch (error) {
 			console.error("Error rendering chart:", error);
@@ -93,6 +136,9 @@ function calculateDelta(currentPoint, previousPoint) {
 }
 
 function renderChart() {
+	// Get current aggregation level
+	const aggregationLevel = currentAggregationLevel;
+
 	const checkboxes = document.querySelectorAll(".profile-toggle");
 	const visibleProfileIds = [];
 	for (const cb of checkboxes) {
@@ -102,21 +148,24 @@ function renderChart() {
 	}
 
 	const datasets = [];
-	const allTimestamps = new Set();
+	const allTimestamps = new Set(); // Keep track of unique timestamps in aggregated data
 
 	let index = 0;
 	for (const profileId of visibleProfileIds) {
-		const history = currentFollowerHistory[profileId] || [];
-		if (history.length === 0) continue;
+		const rawHistory = currentFollowerHistory[profileId] || [];
 
-		// Sort history by timestamp just in case
-		history.sort((a, b) => a.timestamp - b.timestamp);
+		// Aggregate the data based on the selected level
+		const aggregatedHistory = aggregateData(rawHistory, aggregationLevel);
 
-		for (const point of history) {
+		if (aggregatedHistory.length === 0) continue;
+
+		// Use aggregated timestamps
+		for (const point of aggregatedHistory) {
 			allTimestamps.add(point.timestamp);
 		}
 
-		const dataPoints = history.map((point) => ({
+		// Map aggregated data to chart points
+		const dataPoints = aggregatedHistory.map((point) => ({
 			x: point.timestamp,
 			y: point.count,
 			profileId: profileId, // Store profileId with point for tooltip
@@ -132,7 +181,7 @@ function renderChart() {
 		index++;
 	}
 
-	// Prepare labels (sorted timestamps)
+	// Prepare labels (sorted unique timestamps from aggregated data)
 	const sortedTimestamps = Array.from(allTimestamps).sort((a, b) => a - b);
 
 	const ctx = document.getElementById("statsChart").getContext("2d");
@@ -142,7 +191,7 @@ function renderChart() {
 		statsChartInstance.destroy();
 	}
 
-	// Check if there's any data to display
+	// Check if there's any data to display based on aggregation
 	if (datasets.length === 0 || sortedTimestamps.length === 0) {
 		console.log("No data to display in chart.");
 		// Optional: display a message on the canvas or hide it
@@ -176,12 +225,14 @@ function renderChart() {
 				x: {
 					type: "time",
 					time: {
-						unit: "day", // Adjust time unit as needed (e.g., 'hour', 'week')
-						tooltipFormat: "MMM d, yyyy HH:mm", // Format for tooltip
+						// Adjust unit and tooltip format based on aggregation
+						unit: aggregationLevel === "monthly" ? "month" : "day",
+						tooltipFormat:
+							aggregationLevel === "monthly" ? "MMM yyyy" : "MMM d, yyyy", // Simpler format
 					},
 					title: {
 						display: true,
-						text: "Date",
+						text: aggregationLevel === "monthly" ? "Month" : "Date",
 					},
 				},
 				y: {
@@ -194,33 +245,8 @@ function renderChart() {
 			},
 			plugins: {
 				tooltip: {
-					callbacks: {
-						label: (context) => {
-							const label = context.dataset.label || "";
-							const point = context.raw;
-							const count = point.y;
-
-							// Find the previous data point for the same profile
-							const historyForProfile =
-								currentFollowerHistory[point.profileId] || [];
-							const currentHistoryIndex = historyForProfile.findIndex(
-								(p) => p.timestamp === point.x,
-							);
-							const previousHistoryPoint =
-								currentHistoryIndex > 0
-									? historyForProfile[currentHistoryIndex - 1]
-									: null;
-
-							const deltaInfo = calculateDelta(
-								{ count: point.y },
-								previousHistoryPoint
-									? { count: previousHistoryPoint.count }
-									: null,
-							);
-
-							return `${label}: ${count} followers ${deltaInfo.text}`;
-						},
-					},
+					mode: "index", // Find items across datasets at the same index
+					intersect: false, // Trigger tooltip even when not directly over an item
 				},
 			},
 		},
@@ -257,6 +283,9 @@ function removeProfile(profileIdToRemove) {
 // Fully reconstructed renderDataTable function
 function renderDataTable() {
 	console.log("renderDataTable: Starting table render...");
+	// Get current aggregation level
+	const aggregationLevel = currentAggregationLevel;
+
 	const tableContainer = document.getElementById("dataTableContainer");
 	if (!tableContainer) {
 		console.error("renderDataTable: Could not find table container div");
@@ -274,15 +303,24 @@ function renderDataTable() {
 	console.log("renderDataTable: Visible profile IDs:", visibleProfileIds);
 
 	const allDataPoints = [];
+	// Store aggregated data per profile for delta calculation
+	const processedAggregatedData = {};
+
 	for (const profileId of visibleProfileIds) {
-		const history = currentFollowerHistory[profileId] || [];
-		// console.log(`renderDataTable: History for ${profileId}:`, history); // Optional DEBUG
-		for (const point of history) {
+		const rawHistory = currentFollowerHistory[profileId] || [];
+		// Aggregate the data based on the selected level
+		const aggregatedHistory = aggregateData(rawHistory, aggregationLevel);
+
+		// Store aggregated history for delta calculation later
+		processedAggregatedData[profileId] = aggregatedHistory;
+
+		// Add aggregated points to the list for table rows
+		for (const point of aggregatedHistory) {
 			allDataPoints.push({ ...point, profileId });
 		}
 	}
 
-	// Sort all data points by timestamp, descending (most recent first)
+	// Sort all aggregated data points by timestamp, descending (most recent first)
 	allDataPoints.sort((a, b) => b.timestamp - a.timestamp);
 
 	if (allDataPoints.length === 0) {
@@ -309,14 +347,6 @@ function renderDataTable() {
 	// Create body rows
 	const tbody = table.createTBody();
 
-	// Process sorted data to easily find previous point for delta calculation
-	const processedData = {};
-	for (const profileId of visibleProfileIds) {
-		processedData[profileId] = (currentFollowerHistory[profileId] || []).sort(
-			(a, b) => a.timestamp - b.timestamp,
-		);
-	}
-
 	for (const point of allDataPoints) {
 		const row = tbody.insertRow();
 
@@ -324,22 +354,33 @@ function renderDataTable() {
 		let cell = row.insertCell();
 		cell.textContent = point.profileId;
 
-		// Timestamp
+		// Timestamp - Format based on aggregation level
 		cell = row.insertCell();
-		cell.textContent = new Date(point.timestamp).toLocaleString(); // Format timestamp
+		const displayDate = new Date(point.timestamp);
+		cell.textContent =
+			aggregationLevel === "monthly"
+				? displayDate.toLocaleDateString(undefined, {
+						year: "numeric",
+						month: "short",
+					})
+				: displayDate.toLocaleDateString(); // Use locale date string for daily
 
 		// Follower Count
 		cell = row.insertCell();
 		cell.textContent = point.count;
 
-		// Change calculation
+		// Change calculation - using aggregated data
 		cell = row.insertCell();
-		const profileHistory = processedData[point.profileId] || [];
-		const currentHistoryIndex = profileHistory.findIndex(
+		const profileAggregatedHistory =
+			processedAggregatedData[point.profileId] || [];
+		// Find the index of the current point in the *sorted* aggregated history
+		const currentHistoryIndex = profileAggregatedHistory.findIndex(
 			(p) => p.timestamp === point.timestamp,
 		);
 		const previousHistoryPoint =
-			currentHistoryIndex > 0 ? profileHistory[currentHistoryIndex - 1] : null;
+			currentHistoryIndex > 0
+				? profileAggregatedHistory[currentHistoryIndex - 1]
+				: null;
 
 		const deltaInfo = calculateDelta(
 			{ count: point.count },
@@ -360,7 +401,21 @@ function renderDataTable() {
 }
 
 // Load profiles when the options page is opened
-document.addEventListener("DOMContentLoaded", loadProfiles);
+document.addEventListener("DOMContentLoaded", () => {
+	loadProfiles();
+
+	// Add event listeners for aggregation radio buttons
+	const radioButtons = document.querySelectorAll('input[name="aggregation"]');
+	for (const radio of radioButtons) {
+		radio.addEventListener("change", (event) => {
+			currentAggregationLevel = event.target.value;
+			console.log(`Aggregation level changed to: ${currentAggregationLevel}`);
+			// Re-render chart and table with new aggregation
+			renderChart();
+			renderDataTable();
+		});
+	}
+});
 
 // Add a listener for storage changes to update the chart and table if data changes elsewhere
 chrome.storage.onChanged.addListener((changes, namespace) => {

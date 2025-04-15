@@ -194,7 +194,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 		);
 
 		const { profileId, count } = message;
-		const timestamp = Date.now();
+		const timestamp = Date.now(); // Use the time the message was received as the timestamp
+		const newPoint = { timestamp, count };
 
 		const tabIdToClose = sender.tab?.id;
 		if (!tabIdToClose) {
@@ -208,8 +209,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 			const history = data.followerHistory || {};
 			const profileHistory = history[profileId] || [];
 
-			profileHistory.push({ timestamp, count });
+			// Calculate the start of the day for the new timestamp
+			const newTimestampDate = new Date(timestamp);
+			newTimestampDate.setHours(0, 0, 0, 0); // Set to start of the day
+			const newTimestampDayStart = newTimestampDate.getTime();
+
+			// Find if an entry for the same day already exists
+			const existingIndex = profileHistory.findIndex((p) => {
+				const existingTimestampDate = new Date(p.timestamp);
+				existingTimestampDate.setHours(0, 0, 0, 0); // Set to start of the day
+				return existingTimestampDate.getTime() === newTimestampDayStart;
+			});
+
+			if (existingIndex !== -1) {
+				// Replace existing entry for that day
+				console.log(
+					`Replacing existing data for profile ${profileId} on day ${new Date(newTimestampDayStart).toLocaleDateString()}`,
+				);
+				profileHistory[existingIndex] = newPoint;
+			} else {
+				// Add new entry if no entry exists for that day
+				profileHistory.push(newPoint);
+			}
+
+			// Sort history by timestamp (ascending)
 			profileHistory.sort((a, b) => a.timestamp - b.timestamp);
+
 			history[profileId] = profileHistory;
 
 			const syncState = data.syncState || {
