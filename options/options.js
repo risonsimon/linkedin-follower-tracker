@@ -23,6 +23,11 @@ function aggregateData(history, level) {
 		if (level === "monthly") {
 			periodStartDate.setDate(1); // Set to the 1st of the month
 		}
+		// --- New Yearly Handling ---
+		else if (level === "yearly") {
+			periodStartDate.setMonth(0, 1); // Set to January 1st of the year
+		}
+		// --- End New Yearly Handling ---
 		// Always set to the start of the day for the key
 		periodStartDate.setHours(0, 0, 0, 0);
 		const periodStartKey = periodStartDate.getTime();
@@ -226,13 +231,27 @@ function renderChart() {
 					type: "time",
 					time: {
 						// Adjust unit and tooltip format based on aggregation
-						unit: aggregationLevel === "monthly" ? "month" : "day",
+						unit:
+							aggregationLevel === "yearly"
+								? "year"
+								: aggregationLevel === "monthly"
+									? "month"
+									: "day",
 						tooltipFormat:
-							aggregationLevel === "monthly" ? "MMM yyyy" : "MMM d, yyyy", // Simpler format
+							aggregationLevel === "yearly"
+								? "yyyy"
+								: aggregationLevel === "monthly"
+									? "MMM yyyy"
+									: "MMM d, yyyy",
 					},
 					title: {
 						display: true,
-						text: aggregationLevel === "monthly" ? "Month" : "Date",
+						text:
+							aggregationLevel === "yearly"
+								? "Year"
+								: aggregationLevel === "monthly"
+									? "Month"
+									: "Date",
 					},
 				},
 				y: {
@@ -391,12 +410,14 @@ function renderDataTable() {
 		cell = row.insertCell();
 		const displayDate = new Date(point.timestamp);
 		cell.textContent =
-			aggregationLevel === "monthly"
-				? displayDate.toLocaleDateString(undefined, {
-						year: "numeric",
-						month: "short",
-					})
-				: displayDate.toLocaleDateString(); // Use locale date string for daily
+			aggregationLevel === "yearly"
+				? displayDate.toLocaleDateString(undefined, { year: "numeric" })
+				: aggregationLevel === "monthly"
+					? displayDate.toLocaleDateString(undefined, {
+							year: "numeric",
+							month: "short",
+						})
+					: displayDate.toLocaleDateString(); // Use locale date string for daily
 
 		// Follower Count
 		cell = row.insertCell();
