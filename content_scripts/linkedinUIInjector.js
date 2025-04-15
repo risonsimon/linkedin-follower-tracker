@@ -23,25 +23,71 @@ function findHeaderAndInjectButton() {
 
 		syncButton.addEventListener("click", () => {
 			console.log("Sync button clicked.");
-			// Provide visual feedback immediately
-			syncButton.textContent = "Syncing...";
-			syncButton.disabled = true;
-			chrome.runtime.sendMessage({ action: "startSync" }, (response) => {
-				// Background script will now send status updates
-				console.log("Message sent to background script.", response);
 
-				if (chrome.runtime.lastError) {
-					console.error("Error sending message:", chrome.runtime.lastError);
-					// Handle error, reset button state immediately
-					syncButton.textContent = "Sync Error";
-					// Optionally re-enable after a delay or based on error type
-					setTimeout(() => {
-						syncButton.textContent = "Sync Follower Counts";
-						syncButton.disabled = false;
-					}, 3000); // Keep error state visible for a bit
+			// --- Check last sync date ---
+			chrome.storage.local.get("followerHistory", (data) => {
+				const history = data.followerHistory || {};
+				let lastSyncTimestamp = 0;
+
+				// Find the latest timestamp across all profiles
+				for (const profileId in history) {
+					const profileHistory = history[profileId];
+					if (profileHistory && profileHistory.length > 0) {
+						const latestEntry = profileHistory[profileHistory.length - 1];
+						if (latestEntry.timestamp > lastSyncTimestamp) {
+							lastSyncTimestamp = latestEntry.timestamp;
+						}
+					}
 				}
-				// No immediate reset here anymore. Wait for background messages.
+
+				const today = new Date();
+				today.setHours(0, 0, 0, 0); // Start of today
+				const lastSyncDate = new Date(lastSyncTimestamp);
+				lastSyncDate.setHours(0, 0, 0, 0); // Start of the last sync day
+
+				let proceedSync = true;
+
+				if (
+					lastSyncTimestamp > 0 &&
+					today.getTime() === lastSyncDate.getTime()
+				) {
+					// Synced today, ask for confirmation
+					proceedSync = window.confirm(
+						"Follower counts were already synced today. Do you want to sync again?",
+					);
+				}
+
+				if (proceedSync) {
+					// --- Proceed with sync ---
+					// Provide visual feedback immediately
+					syncButton.textContent = "Syncing...";
+					syncButton.disabled = true;
+					chrome.runtime.sendMessage({ action: "startSync" }, (response) => {
+						// Background script will now send status updates
+						console.log("Message sent to background script.", response);
+
+						if (chrome.runtime.lastError) {
+							console.error("Error sending message:", chrome.runtime.lastError);
+							// Handle error, reset button state immediately
+							syncButton.textContent = "Sync Error";
+							// Optionally re-enable after a delay or based on error type
+							setTimeout(() => {
+								syncButton.textContent = "Sync Follower Counts";
+								syncButton.disabled = false;
+							}, 3000); // Keep error state visible for a bit
+						}
+						// No immediate reset here anymore. Wait for background messages.
+					});
+					// --- End Proceed with sync ---
+				} else {
+					// User cancelled the sync
+					console.log("User cancelled sync.");
+					// Reset button state if sync is cancelled
+					syncButton.textContent = "Sync Follower Counts";
+					syncButton.disabled = false;
+				}
 			});
+			// --- End Check last sync date ---
 		});
 
 		// Append as the last item in the primary items list
