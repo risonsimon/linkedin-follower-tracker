@@ -23,28 +23,24 @@ function findHeaderAndInjectButton() {
 
 		syncButton.addEventListener("click", () => {
 			console.log("Sync button clicked.");
-			// Optional: Provide visual feedback
+			// Provide visual feedback immediately
 			syncButton.textContent = "Syncing...";
 			syncButton.disabled = true;
 			chrome.runtime.sendMessage({ action: "startSync" }, (response) => {
-				// Re-enable button after background script potentially responds
-				// (or after a timeout if no response expected immediately)
+				// Background script will now send status updates
 				console.log("Message sent to background script.", response);
-				// Reset button state after a short delay to give feedback
-				setTimeout(() => {
-					syncButton.textContent = "Sync Follower Counts";
-					syncButton.disabled = false;
-				}, 1500);
 
 				if (chrome.runtime.lastError) {
 					console.error("Error sending message:", chrome.runtime.lastError);
-					// Handle error, maybe reset button state immediately
+					// Handle error, reset button state immediately
 					syncButton.textContent = "Sync Error";
+					// Optionally re-enable after a delay or based on error type
 					setTimeout(() => {
 						syncButton.textContent = "Sync Follower Counts";
 						syncButton.disabled = false;
-					}, 3000);
+					}, 3000); // Keep error state visible for a bit
 				}
+				// No immediate reset here anymore. Wait for background messages.
 			});
 		});
 
@@ -57,6 +53,54 @@ function findHeaderAndInjectButton() {
 		console.log("Sync button already exists.");
 	}
 }
+
+// Listen for status updates from the background script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+	if (message.action === "syncStatusUpdate") {
+		console.log("Received status update:", message.status, message.details);
+		const syncButton = document.getElementById("syncFollowersButton");
+		if (syncButton) {
+			switch (message.status) {
+				case "syncStart":
+					syncButton.textContent = "Syncing (0%)...";
+					syncButton.disabled = true;
+					break;
+				case "syncProgress": {
+					const percent =
+						message.details.total > 0
+							? Math.round(
+									(message.details.current / message.details.total) * 100,
+								)
+							: 0;
+					syncButton.textContent = `Syncing (${percent}%)...`;
+					syncButton.disabled = true;
+					break;
+				}
+				case "syncComplete":
+					syncButton.textContent = "Sync Complete!";
+					syncButton.disabled = false;
+					// Revert back to original text after a short delay
+					setTimeout(() => {
+						syncButton.textContent = "Sync Follower Counts";
+					}, 2000);
+					break;
+				case "syncError": // Optional: Handle specific error status if added in background.js
+					syncButton.textContent = "Sync Error";
+					syncButton.disabled = false;
+					setTimeout(() => {
+						syncButton.textContent = "Sync Follower Counts";
+					}, 3000);
+					break;
+				default:
+					// Optional: Handle unexpected statuses or reset if needed
+					console.warn("Unhandled sync status:", message.status);
+					syncButton.textContent = "Sync Follower Counts";
+					syncButton.disabled = false;
+					break;
+			}
+		}
+	}
+});
 
 // LinkedIn uses dynamic loading, so we need to be robust about when we inject.
 // We can try injecting immediately and also use a MutationObserver or interval
